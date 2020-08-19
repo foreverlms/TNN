@@ -40,7 +40,7 @@ public:
     // init tnn implement, interpret model.
     Status Init(ModelConfig& config);
 
-    // denit tnn implement, release model interpreter.
+    // deinit tnn implement, release model interpreter.
     Status DeInit();
 
     // add output to the model. 

@@ -13,7 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "UltraFaceDetector.h"
-#include "examples/samples/timer.h"
+//#include "examples/samples/timer.h"
+#include "timer.h"
 #include <cmath>
 #include <cstring>
 
