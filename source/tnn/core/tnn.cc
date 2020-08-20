@@ -24,6 +24,9 @@ TNN::~TNN() {
 }
 
 Status TNN::Init(ModelConfig& config) {
+    /**
+     * 设定tnn的参数
+     */
     impl_ = TNNImplManager::GetTNNImpl(config.model_type);
     if (!impl_) {
         LOGE("Error: not support mode type: %d\n", config.model_type);

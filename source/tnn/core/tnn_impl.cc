@@ -32,6 +32,7 @@ Status TNNImpl::Init(ModelConfig &config) {
 }
 
 std::map<ModelType, std::shared_ptr<AbstractTNNImplFactory>> &TNNImplManager::GetTNNImplFactoryMap() {
+    //这个map由于是静态的，因此一直存在于内存
     static std::map<ModelType, std::shared_ptr<AbstractTNNImplFactory>> s_tnn_impl_factory_map;
     return s_tnn_impl_factory_map;
 }
@@ -39,6 +40,8 @@ std::map<ModelType, std::shared_ptr<AbstractTNNImplFactory>> &TNNImplManager::Ge
 std::shared_ptr<TNNImpl> TNNImplManager::GetTNNImpl(ModelType type) {
     auto &impl_map = TNNImplManager::GetTNNImplFactoryMap();
     auto iter      = impl_map.find(type);
+    //判断输入的模型tnn是否支持，只支持ncnn与tnn格式
+    //注册已在tnn_impl_default.cc里实现，因为是全局变量？
     if (iter != impl_map.end()) {
         return iter->second->CreateTNNImp();
     }
@@ -48,6 +51,7 @@ std::shared_ptr<TNNImpl> TNNImplManager::GetTNNImpl(ModelType type) {
 
 void TNNImplManager::RegisterTNNImplFactory(ModelType type, AbstractTNNImplFactory *factory) {
     if (factory) {
+        //向s_tnn_impl_factory_map这个map里注册模型类别
         auto &optimizer_map = TNNImplManager::GetTNNImplFactoryMap();
         optimizer_map[type] = std::shared_ptr<AbstractTNNImplFactory>(factory);
     }
