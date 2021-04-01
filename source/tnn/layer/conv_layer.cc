@@ -21,18 +21,7 @@ namespace TNN_NS {
 DECLARE_LAYER(Conv, LAYER_CONVOLUTION);
 
 Status ConvLayer::InferOutputDataType() {
-    // Init base type, will re write in different device acc
-    ConvLayerResource* conv_resource = dynamic_cast<ConvLayerResource*>(resource_);
-    if (input_blobs_[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16 ||
-        input_blobs_[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        output_blobs_[0]->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
-    } else if (conv_resource) {
-        output_blobs_[0]->GetBlobDesc().data_type = conv_resource->filter_handle.GetDataType();
-    } else {
-        LOGE("Error: conv_resource is nil\n");
-        return Status(TNNERR_LAYER_ERR, "Error: conv_resource is nil");
-    }
-    return TNN_OK;
+    return BaseLayer::InferOutputDataType();
 }
 
 Status ConvLayer::InferOutputShape() {
@@ -62,12 +51,12 @@ Status ConvLayer::InferOutputShape() {
 
     const int pad_type = conv_param->pad_type;
 
+    int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
+    int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
+
     // Refactored the code to support tensorflow models
     if (pad_type == -1)  // default padding following the proto setting
     {
-        int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
-        int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
-
         const int pad_left   = conv_param->pads[0];
         const int pad_right  = conv_param->pads[1];
         const int pad_top    = conv_param->pads[2];
@@ -85,8 +74,8 @@ Status ConvLayer::InferOutputShape() {
             width_out  = static_cast<int>(std::ceil(float(width) / float(stride_w)));
         } else if (pad_type == 1)  // VALID type
         {
-            height_out = static_cast<int>(std::ceil(float(height - kernel_h + 1) / float(stride_h)));
-            width_out  = static_cast<int>(std::ceil(float(width - kernel_w + 1) / float(stride_w)));
+            height_out = static_cast<int>(std::ceil(float(height - kernel_extent_h + 1) / float(stride_h)));
+            width_out  = static_cast<int>(std::ceil(float(width - kernel_extent_w + 1) / float(stride_w)));
         } else  // FULL type
         {
             // to-do: deconv has full type, what's conv's full type?
@@ -94,8 +83,8 @@ Status ConvLayer::InferOutputShape() {
             return Status(TNNERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
         }
 
-        int pad_along_height = ((height_out - 1) * stride_h + kernel_h - height);
-        int pad_along_width  = ((width_out - 1) * stride_w + kernel_w - width);
+        int pad_along_height = ((height_out - 1) * stride_h + kernel_extent_h - height);
+        int pad_along_width  = ((width_out - 1) * stride_w + kernel_extent_w - width);
         int pad_top          = pad_along_height / 2;
         int pad_left         = pad_along_width / 2;
 

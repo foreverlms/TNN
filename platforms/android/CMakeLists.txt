@@ -20,34 +20,21 @@ else()
     target_link_libraries(TNN log -fopenmp)
 endif()
 
+if(NOT TNN_BUILD_SHARED)
+    string(ASCII 27 Esc)
+    set(ColourReset "${Esc}[m")
+    set(Red         "${Esc}[31m")
+    message(STATUS "${Red}[WARNING] TNN is built as a static library, link it with option -Wl,--whole-archive tnn -Wl,--no-whole-archive${ColourReset}")
+endif()
+
 if(TNN_OPENCL_ENABLE)
     message(STATUS "Build TNN OpenCL")
-
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/opencl/include)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/device/opencl)
+endif()
 
-elseif(TNN_DSP_ENABLE)
-    message(STATUS "Build TNN DSP")
-
-    target_link_libraries(TNN SNPE EGL GLESv2 symphony-cpu c++_shared)
-
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/device/dsp)
-
-    if(ANDROID_TEST_ENABLE)
-        add_executable(AndroidTest ${COMMON_SRC} ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_dsp_android.cc)
-        target_link_libraries(AndroidTest TNN)
-    endif()
-
-elseif(TNN_NPU_ENABLE)
+if(TNN_HUAWEI_NPU_ENABLE)
     message(STATUS "Build TNN NPU")
-
-    target_link_libraries(TNN hiai)
-
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/device/npu)
-
-    if(ANDROID_TEST_ENABLE)
-        add_executable(AndroidTest ${COMMON_SRC} ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_npu_android.cc)
-        target_link_libraries(AndroidTest TNN)
-    endif()
-
+    target_link_libraries(TNN hiai hiai_ir hiai_ir_build)
+    include_directories(${PROJECT_SOURCE_DIR}/source/tnn/device/huawei_npu)
 endif()

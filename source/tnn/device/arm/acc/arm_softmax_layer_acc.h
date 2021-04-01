@@ -15,28 +15,33 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_SOFTMAX_LAYER_ACC_H_
 #define TNN_SOURCE_TNN_DEVICE_ARM_ARM_SOFTMAX_LAYER_ACC_H_
 
-#include <string>
-#include <vector>
-
-#include "tnn/core/abstract_layer_acc.h"
-#include "tnn/core/macro.h"
 #include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/device/arm/acc/compute/compute.h"
-#include "tnn/device/arm/arm_context.h"
-#include "tnn/device/arm/arm_device.h"
 
 namespace TNN_NS {
-// @brief conv layer arm acc
-class ArmSoftmaxLayerAcc : public ArmLayerAcc {
-public:
-    virtual ~ArmSoftmaxLayerAcc(){};
 
-    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+DECLARE_ARM_ACC(Softmax, LAYER_SOFTMAX);
 
-private:
-    template <typename T>
-    Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-};
+#define SoftmaxPreparation()                                                                                           \
+    auto in_data_type = inputs[0]->GetBlobDesc().data_type;                                                            \
+    auto axis         = layer_param->axis;                                                                             \
+    auto input        = inputs[0];                                                                                     \
+    auto output       = outputs[0];                                                                                    \
+    auto dims         = output->GetBlobDesc().dims;                                                                    \
+    auto width        = dims[3];                                                                                       \
+    auto height       = dims[2];                                                                                       \
+    auto batch        = dims[0];                                                                                       \
+    size_t count      = width * height * batch * dims[1];                                                              \
+    int inside        = 1;                                                                                             \
+    int outside       = 1;                                                                                             \
+    int channel       = 1;                                                                                             \
+    for (int i = 1; i < axis; i++) {                                                                                   \
+        outside *= dims[i];                                                                                            \
+    }                                                                                                                  \
+    channel = dims[axis];                                                                                              \
+    for (int i = axis + 1; i < dims.size(); i++) {                                                                     \
+        inside *= dims[i];                                                                                             \
+    }                                                                                                                  \
+    auto step_y = channel * inside;
 
 }  // namespace TNN_NS
 

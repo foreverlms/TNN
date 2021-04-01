@@ -19,8 +19,10 @@
 #include <string>
 #include <vector>
 
+#include "tnn/core/macro.h"
 #include "tnn/core/status.h"
 #include "tnn/core/profile.h"
+#include "tnn/core/common.h"
 
 namespace TNN_NS {
 
@@ -36,17 +38,38 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void** command_queue) = 0;
 
-    // @brief befor instace forword
+    // @brief share tnn command queue to another context
+    virtual Status ShareCommandQueue(Context* context);
+    
+    // @brief before instace forword
     virtual Status OnInstanceForwardBegin();
 
     // @brief after instace forword
     virtual Status OnInstanceForwardEnd() = 0;
+
+    // @brief before instance Reshape
+    virtual Status OnInstanceReshapeBegin();
+
+    // @brief after instace Reshape
+    virtual Status OnInstanceReshapeEnd();
 
     // @brief wait for jobs in the current context to complete
     virtual Status Synchronize() = 0;
 
     // @brief set threads run on device
     virtual Status SetNumThreads(int num_threads);
+
+    void SetPrecision(Precision precision);
+
+    Precision GetPrecision();
+
+    void SetEnableTuneKernel(bool enalbe_tune_kernel);
+
+    bool GetEnableTuneKernel();
+
+    void SetCacheFilePath(std::string cache_file_path);
+
+    std::string GetCacheFilePath();
 
 #if TNN_PROFILE
 public:
@@ -59,6 +82,11 @@ public:
 protected:
     std::shared_ptr<ProfileResult> profiling_result_ = nullptr;
 #endif
+
+protected:
+    Precision precision_ = PRECISION_AUTO;
+    bool enable_tune_kernel_ = true;
+    std::string cache_file_path_ = "";
 };
 
 }  // namespace TNN_NS

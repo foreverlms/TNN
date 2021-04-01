@@ -51,11 +51,17 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
     }
 
     net_structure_ = net_structure;
-    // modify input shape, only set invalid net input shape
+
     auto instance_input_shapes_map = net_structure_->inputs_shape_map;
-    for (auto iter : inputs_shape_map) {
-        if (instance_input_shapes_map.count(iter.first) > 0) {
-            instance_input_shapes_map[iter.first] = iter.second;
+    if (instance_input_shapes_map.size() == 1 && inputs_shape_map.size() == 1) {
+        // modify input shape if only one input, ignore the key
+        instance_input_shapes_map.begin()->second = inputs_shape_map.begin()->second;
+    } else {
+        // modify input shape, only set invalid net input shape
+        for (auto iter : inputs_shape_map) {
+            if (instance_input_shapes_map.count(iter.first) > 0) {
+                instance_input_shapes_map[iter.first] = iter.second;
+            }
         }
     }
 
@@ -139,7 +145,7 @@ Status BlobManager::AllocateBlobMemory() {
      *  We reuse blob memory of the previos layers if it is not referenced.
      *  So, a use_count is calculated here.
      */
-    for (int layer_index = 0; layer_index < net_structure_->layers.size(); layer_index++) {
+    for (size_t layer_index = 0; layer_index < net_structure_->layers.size(); layer_index++) {
         LayerInfo *layer_info = net_structure_->layers[layer_index].get();
         // allocating blob memory for every out nodes of this layer
         for (auto current_blob_name : layer_info->outputs) {
@@ -175,9 +181,9 @@ Status BlobManager::AllocateBlobMemory() {
             }
         }
     }
-    
+
     Status status = TNN_OK;
-    
+
     do {
         if (config_.share_memory_mode == SHARE_MEMORY_MODE_DEFAULT) {
             // The default strategy allocated the blob memory seperately.
@@ -209,7 +215,7 @@ Status BlobManager::AllocateBlobMemory() {
 int BlobManager::GetBlobUseCount(int layer_index, std::string current_blob_name) {
     int use_count                            = 0;
     std::set<std::string> &output_blob_names = net_structure_->outputs;
-    for (int next_layer_id = layer_index + 1; next_layer_id != net_structure_->layers.size(); ++next_layer_id) {
+    for (size_t next_layer_id = layer_index + 1; next_layer_id != net_structure_->layers.size(); ++next_layer_id) {
         LayerInfo *next_layer_info = net_structure_->layers[next_layer_id].get();
         for (auto blob_name : next_layer_info->inputs) {
             if (strcmp(current_blob_name.c_str(), blob_name.c_str()) == 0) {

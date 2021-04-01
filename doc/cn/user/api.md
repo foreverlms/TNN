@@ -49,7 +49,6 @@ TNN_NS::ModelConfig model_config;
 model_config.params.push_back(proto_buffer);
 //model文件内容存入model_buffer
 model_config.params.push_back(model_buffer);
-tnn.Init(model_config);
 ```
 
 TNN模型解析需配置ModelConfig params参数，传入proto和model文件内容，并调用TNN Init接口即可完成模型解析。
@@ -64,7 +63,14 @@ auto net_instance = tnn.CreateInst(config, error);
 ```
 
 TNN网络构建需配置NetworkConfig，device_type可配置ARM， OPENCL， METAL等多种加速方式，通过CreateInst接口完成网络的构建。
+华为NPU需要特殊指定network类型以及一个可选的cache路径。cache路径为存om文件的path,如("/data/local/tmp/")，空则表示不存om文件，每次运行都使用IR翻译并从内存读入模型。
 
+```cpp
+config.network_type = TNN_NS::NETWORK_TYPE_HUAWEI_NPU;
+//Huawei_NPU可选：存om的Cache路径
+//add for cache; When using NPU, it is the path to store the om i.e. config.cache_path = "/data/local/tmp/npu_test/";
+config.cache_path = "";
+```
 
 ### 步骤3. 输入设定
 
@@ -72,7 +78,7 @@ TNN网络构建需配置NetworkConfig，device_type可配置ARM， OPENCL， MET
     auto status = instance->SetInputMat(input_mat, input_cvt_param);
 ```
 
-TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存在input_mat中，input_cvt_param可设置scale和bias相关转换参数。
+TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存在input_mat中，input_cvt_param可设置scale和bias[相关转换参数](#MatConvertParam参数说明)。
 
 ### 步骤4. 输出获取
 
@@ -80,7 +86,7 @@ TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存
     auto status = instance->GetOutputMat(output_mat);
 ```
 
-TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特定格式保存在output_mat中。
+TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特定格式保存在output_mat中。输出结果同样支持scale和bias[相关转换](#MatConvertParam参数说明)。
 
 ## 二、API详解
 
@@ -98,8 +104,8 @@ TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特�
     │   └── tnn.h               # 模型解析
     ├── utils
     │   ├── bfp16_utils.h       # bfp16转换工具
-    │   ├── blob_converter.h    # blob输入输出数据工
-    │   ├── cpu_utils.h         # CPU性能特定优化工具
+    │   ├── blob_converter.h    # blob输入输出数据工具
+    │   ├── cpu_utils.h         # CPU性能特定优化工具
     │   ├── data_type_utils.h   # 网络数据类型解析工具
     │   ├── dims_vector_utils.h # blob尺寸计算工具
     │   └── half_utils.h        # fp16转换工具
@@ -154,7 +160,7 @@ struct PUBLIC NetworkConfig {
     std::vector<std::string> library_path = {}; 
 
     // compute precision
-    Precision precision = PRECISION_HIGH;
+    Precision precision = PRECISION_AUTO;
 };
 ```
 NetworkConfig参数说明：  
@@ -187,6 +193,7 @@ struct PUBLIC ModelConfig {
 ModelConfig参数说明：  
 - `model_type`: TNN当前开源版本仅支持传入`MODEL_TYPE_TNN`， `MODEL_TYPE_NCNN`两种模型格式。  
 - `params`: TNN模型需传入proto文件内容以及model文件路径。NCNN模型需传入param文件内容以及bin文件路径。  
+
 
 ### 3. core/status.h
 `Status`定义于status.h头文件中。
@@ -268,7 +275,9 @@ dims描述blob维度信息，dims存储尺寸与data_format无关：
 
 - `ARM`：CPU内存， NC4HW4.  
 - `OPENCL`: GPU显存（clImage）， NHC4W4. 其中NH为clImage高，C4W4为clImage宽。  
-- `METAL`: GPU显存（metal)， NC4HW4.  
+- `METAL`: GPU显存（metal)， NC4HW4.
+- `HUAWEI_NPU: CPU内存, NCHW.
+
 其中最后4代表pack 4, C4代表最后1位4由4个C进行pack。  
 
 ### 5. core/instance.h
@@ -438,6 +447,16 @@ struct PUBLIC MatConvertParam {
     bool reverse_channel = false;
 };
 ```
+
+#### MatConvertParam参数说明：  
+- `reverse_channel`: 默认为`false`，若需要交换图像的B和R维度，可将此参数设置为`true`。  
+    * 仅`N8UC3`和`N8UC4`类型的Mat支持reverse_channel，其他类型的Mat会忽略该参数。  
+    * `ConvertFromMat`和`ConvertToMat`过程都支持reverse_channel。  
+- `scale`和`bias`: scale默认为 `1`，bias默认为`0`，计算顺序为先乘scale，再加bias。  
+    * 所有类型的Mat都支持scale和bias。  
+    * `ConvertFromMat`和`ConvertToMat`过程都支持scale和bias。  
+    * 若指定的scale全为`1`，且bias全为`0`，或者使用默认的scale和bias值，则不做乘scale和加bias操作；否则用户需提供与channel大小对应的scale和bias值。  
+    * 对于多维数据，scale和bias中的数值顺序和推理过程使用的数据格式保持一致。例如，若模型实际使用BGR格式进行推理，则`ConvertFromMat`和`ConvertToMat`过程，无论reverse_channel与否，scale和bias都需按照BGR顺序指定。也可理解为，`ConvertFromMat`先reverse channel，再乘scale和加bias；`ConvertToMat`先乘scale和加bias，再reverse channel。  
 
 ### 9. utils/cpu\_utils.h
 提供CPU线程核绑定以及省电模式设定相关工具。

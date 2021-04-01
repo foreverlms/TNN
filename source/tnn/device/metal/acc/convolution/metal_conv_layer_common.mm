@@ -17,7 +17,7 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 bool MetalConvLayerCommon::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
@@ -146,9 +146,7 @@ Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const st
     
     auto context_impl = context_->getMetalContextImpl();
     auto encoder = [context_impl encoder];
-    if (param_) {
-        encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-    }
+    encoder.label = GetKernelLabel();
     
     int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
     

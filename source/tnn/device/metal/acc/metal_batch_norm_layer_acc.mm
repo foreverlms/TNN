@@ -17,7 +17,7 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -97,9 +97,7 @@ Status MetalBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
         return Status(TNNERR_CONTEXT_ERR, "MetalBatchNormLayerAcc encoder is nil");
     }
 
-    if (param_) {
-        encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-    }
+    encoder.label = GetKernelLabel();
 
     auto input  = inputs[0];
     auto output = outputs[0];

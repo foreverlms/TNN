@@ -100,10 +100,10 @@ Parameters：
     -c    clean and recompile
     -b    only build, no execute
     -f    print out the time for every layer in network, otherwise the average time of all layers
-    -d    add <device-id> to indicate the programme runs on which deivce when multiple devices connected
     -t    add <CPU/GPU> to indicate the platform to run.
+    -bs   executing binaries directly via shell
 ```
-
+P.S. If -t is not set, the programme would run on CPU and GPU by default, "-t HUAWEI_NPU" needs to be specified to obtain Huawei NPU benchmark. 
 #### 4.1 Overall Network Performance Analysis：
 
 Analyze the overall network time-consuming and execute multiple times to obtain average performance.
@@ -124,6 +124,7 @@ Execute script:
 ```
 ./benchmark_models.sh -c -f
 ```
+P.S. Huawei NPU does not support layer by layer analysis.
 The result is shown in the figure and saved to `benchmark_models_result.txt`：
 <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/opencl_profiling.jpg"/>
 
@@ -131,3 +132,5 @@ The result is shown in the figure and saved to `benchmark_models_result.txt`：
 ### 5.Special Instructions 
 
 * For OpenCL，the purpose of the layer-by-layer performance analysis is to analyze the distribution of the kernel's time-consuming. There is an extra cost in order to print the information of each layer, and only the kernel time has reference significance. If you want to see the overall actual performance, the overall network performance analysis is more accurate.
+
+* Compared with executing binaries directly via shell, the foreground benchmark app gets closer performance with an actual Android app. Due to Android's scheduler tailors behavior, it can result in observable differences in performance. Therefore, the benchmark app is preferred for performance measurement.

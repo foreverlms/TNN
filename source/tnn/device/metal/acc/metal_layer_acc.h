@@ -28,7 +28,7 @@ class MetalContext;
 // @brief conv layer metal acc
 class MetalLayerAcc : public AbstractLayerAcc {
 public:
-    Status Init(Context *context, LayerParam *param, LayerResource *resource,
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,
                 const std::vector<Blob *> &inputs,
                 const std::vector<Blob *> &outputs);
 
@@ -49,6 +49,9 @@ public:
     virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs,
                                      const std::vector<Blob *> &outputs,
                                      MTLSize &size);
+    virtual Status ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
+                                     const std::vector<Blob *> &outputs,
+                                     MTLSize &size);
     virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
                                          const std::vector<Blob *> &inputs,
                                          const std::vector<Blob *> &outputs);
@@ -61,6 +64,9 @@ protected:
     MetalContext *context_ = nullptr;
 
     id<MTLBuffer> buffer_param_ = nil;
+    
+    NSString *kernel_label_ = nil;
+    NSString * GetKernelLabel();
 
 private:
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);

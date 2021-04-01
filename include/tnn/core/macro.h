@@ -14,7 +14,11 @@
 
 #ifndef TNN_INCLUDE_TNN_CORE_MACRO_H_
 #define TNN_INCLUDE_TNN_CORE_MACRO_H_
+#include <stdio.h>
+#include <stdlib.h>
 
+// disable Warning 4003 in MSVC: warning C4003: param not enough to call “TNN_NS_”
+#pragma warning(disable:4003)
 // TNN namespcae
 #define TNN_NS__(x) tnn##x
 #define TNN_NS_(x) TNN_NS__(x)
@@ -30,18 +34,18 @@
 #ifdef BUILDING_DLL
 #ifdef __GNUC__
 #define PUBLIC __attribute__((dllexport))
-#else
+#else  // __GNUC__
 #define PUBLIC __declspec(dllexport)
-#endif
-#else
+#endif // __GNUC__
+#else // BUILDING_DLL
 #ifdef __GNUC__
 #define PUBLIC __attribute__((dllimport))
 #else
 #define PUBLIC __declspec(dllimport)
-#endif
-#endif
+#endif // __GNUC__
+#endif // BUILDING_DLL
 #define LOCAL
-#else
+#else // _WIN32 || __CYGWIN__
 #if __GNUC__ >= 4
 #define PUBLIC __attribute__((visibility("default")))
 #define LOCAL __attribute__((visibility("hidden")))
@@ -104,7 +108,7 @@
     {                                                                                                                  \
         int res = (x);                                                                                                 \
         if (!res) {                                                                                                    \
-            LOGE("Error: assert failed");                                                                              \
+            LOGE("Error: assert failed\n");                                                                              \
             assert(res);                                                                                               \
         }                                                                                                              \
     }
@@ -161,19 +165,53 @@
 #define TNN_USE_NEON
 #endif
 
-#define RETURN_ON_NEQ(status, expected)                                                                                \
-    do {                                                                                                               \
-        auto _status = status;                                                                                         \
-        if (_status != expected) {                                                                                     \
-            return _status;                                                                                            \
-        }                                                                                                              \
+#if TNN_ARM82
+
+#ifndef TNN_ARM82_SIMU
+
+#if defined(__aarch64__) && defined(TNN_USE_NEON)
+#define TNN_ARM82_A64
+#elif defined(__arm__)  && defined(TNN_USE_NEON)
+#define TNN_ARM82_A32
+#else
+#define TNN_ARM82_SIMU
+#endif
+
+#endif  // TNN_ARM82_SIMU
+
+#else
+
+#ifdef TNN_ARM82_SIMU
+#undef TNN_ARM82_SIMU
+#endif
+
+#endif  // TNN_ARM82
+
+#if defined(TNN_ARM82_A64) || defined(TNN_ARM82_A32)
+#define TNN_ARM82_USE_NEON
+#endif
+
+#define RETURN_VALUE_ON_NEQ(status, expected, value)                  \
+    do {                                                                                                         \
+        auto _status = (status);                                                                         \
+        if (_status != (expected)) {                                                                     \
+            return (value);                                                                                 \
+        }                                                                                                          \
     } while (0)
 
-#define CHECK_PARAM_NULL(param)                                                                                        \
-    do {                                                                                                               \
-        if (!param) {                                                                                                  \
+#define RETURN_ON_NEQ(status, expected)                                         \
+    do {                                                                                                        \
+        auto _status = (status);                                                                        \
+        if (_status != (expected)) {                                                                    \
+            return _status;                                                                               \
+        }                                                                                                         \
+    } while (0)
+
+#define CHECK_PARAM_NULL(param)                                                   \
+    do {                                                                                                         \
+        if (!param) {                                                                                        \
             return Status(TNNERR_PARAM_ERR, "Error: param is nil");                                                    \
-        }                                                                                                              \
+        }                                                                                                          \
     } while (0)
 
 
